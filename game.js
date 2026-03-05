@@ -117,6 +117,70 @@ const bestiary = {
     void: { color: '#609', hp: 1, speed: 3, type: 'fly', explosive: true }
 };
 
+// Mapa central de sprites: para relacionar imagens, basta editar os caminhos abaixo.
+const SPRITE_PATHS = {
+    characters: {
+        elf: 'assets/imagens/personagens/elf/sprite.png',
+        fairy: 'assets/imagens/personagens/fairy/sprite.png',
+        paladin: 'assets/imagens/personagens/paladin/sprite.png',
+        princess: 'assets/imagens/personagens/princess/sprite.png'
+    },
+    enemies: {
+        stone: 'assets/imagens/inimigos/stone/sprite.png',
+        archer: 'assets/imagens/inimigos/archer/sprite.png',
+        hound: 'assets/imagens/inimigos/hound/sprite.png',
+        rat: 'assets/imagens/inimigos/rat/sprite.png',
+        bat: 'assets/imagens/inimigos/bat/sprite.png',
+        thief: 'assets/imagens/inimigos/thief/sprite.png',
+        fairy_c: 'assets/imagens/inimigos/fairy_c/sprite.png',
+        spitter: 'assets/imagens/inimigos/spitter/sprite.png',
+        worm: 'assets/imagens/inimigos/worm/sprite.png',
+        toad: 'assets/imagens/inimigos/toad/sprite.png',
+        mosquito: 'assets/imagens/inimigos/mosquito/sprite.png',
+        spirit: 'assets/imagens/inimigos/spirit/sprite.png',
+        shard: 'assets/imagens/inimigos/shard/sprite.png',
+        golem: 'assets/imagens/inimigos/golem/sprite.png',
+        sentry: 'assets/imagens/inimigos/sentry/sprite.png',
+        knight: 'assets/imagens/inimigos/knight/sprite.png',
+        tentacle: 'assets/imagens/inimigos/tentacle/sprite.png',
+        void: 'assets/imagens/inimigos/void/sprite.png'
+    },
+    boss: 'assets/imagens/inimigos/boss/sprite.png'
+};
+
+// Biblioteca de sprites carregados em memória.
+const SPRITES = {
+    characters: {},
+    enemies: {},
+    boss: null
+};
+
+function createSprite(path) {
+    if (!path) return null;
+    const img = new Image();
+    img.src = path;
+    return img;
+}
+
+function isSpriteReady(sprite) {
+    return Boolean(sprite && sprite.complete && sprite.naturalWidth > 0);
+}
+
+// Pré-carrega sprites para que o draw use imagem quando disponível.
+function preloadSprites() {
+    Object.entries(SPRITE_PATHS.characters).forEach(([key, path]) => {
+        SPRITES.characters[key] = createSprite(path);
+    });
+
+    Object.entries(SPRITE_PATHS.enemies).forEach(([key, path]) => {
+        SPRITES.enemies[key] = createSprite(path);
+    });
+
+    SPRITES.boss = createSprite(SPRITE_PATHS.boss);
+}
+
+preloadSprites();
+
 // Estado global da run atual.
 let player, enemies = [], bullets = [], particles = [], boss = null;
 let gameActive = false, currentW = 0, frame = 0, shake = 0;
@@ -188,6 +252,7 @@ function initGame(char) {
     selectedChar = char;
     player = {
         ...CHARACTERS[char],
+        spriteKey: char,
         x: CONFIG.player.spawnX,
         y: 0,
         w: CONFIG.player.width,
@@ -306,9 +371,11 @@ function loop() {
 // Cria um inimigo aleatório da pool do mundo atual.
 function spawnEnemy() {
     const pool = worlds[currentW].enemies;
-    const type = bestiary[pool[Math.floor(Math.random()*pool.length)]];
+    const enemyKey = pool[Math.floor(Math.random()*pool.length)];
+    const type = bestiary[enemyKey];
     enemies.push({
         ...type,
+        enemyKey,
         x: canvas.width,
         y: type.type === 'fly' ? CONFIG.world.flyEnemyY : CONFIG.world.groundY - (type.h || CONFIG.world.enemyDefaultHeight),
         w: CONFIG.world.enemyDefaultWidth,
@@ -325,8 +392,13 @@ function updateEntities() {
         if(en.sine) en.y += Math.sin(frame*0.1)*CONFIG.enemy.sineAmplitude;
         if(en.blink) ctx.globalAlpha = Math.sin(frame*CONFIG.enemy.blinkFrequency)>0?1:0.2;
 
-        ctx.fillStyle = en.color;
-        ctx.fillRect(en.x, en.y, en.w, en.h);
+        const enemySprite = SPRITES.enemies[en.enemyKey];
+        if (isSpriteReady(enemySprite)) {
+            ctx.drawImage(enemySprite, en.x, en.y, en.w, en.h);
+        } else {
+            ctx.fillStyle = en.color;
+            ctx.fillRect(en.x, en.y, en.w, en.h);
+        }
         ctx.globalAlpha = 1;
 
         // Disparo periódico para inimigos com ataque à distância.
@@ -410,8 +482,12 @@ function spawnBoss() {
 // IA do boss: alterna ataques e processa dano recebido.
 function updateBoss() {
     boss.t++;
-    ctx.fillStyle = boss.t % CONFIG.boss.colorSwapFrames < CONFIG.boss.colorSwapFrames / 2 ? "#4b0082" : "#9400d3";
-    ctx.fillRect(boss.x, boss.y, boss.w, boss.h);
+    if (isSpriteReady(SPRITES.boss)) {
+        ctx.drawImage(SPRITES.boss, boss.x, boss.y, boss.w, boss.h);
+    } else {
+        ctx.fillStyle = boss.t % CONFIG.boss.colorSwapFrames < CONFIG.boss.colorSwapFrames / 2 ? "#4b0082" : "#9400d3";
+        ctx.fillRect(boss.x, boss.y, boss.w, boss.h);
+    }
 
     // A cada intervalo, escolhe aleatoriamente um padrão de ataque.
     if(boss.t % CONFIG.boss.attackIntervalFrames === 0) {
@@ -454,8 +530,13 @@ function updateBoss() {
 // Renderiza o jogador e o hitbox de ataque.
 function drawPlayer() {
     ctx.globalAlpha = player.invul % 2 === 0 ? 1 : 0.3;
-    ctx.fillStyle = player.color;
-    ctx.fillRect(player.x, player.y, player.w, player.h);
+    const playerSprite = SPRITES.characters[player.spriteKey];
+    if (isSpriteReady(playerSprite)) {
+        ctx.drawImage(playerSprite, player.x, player.y, player.w, player.h);
+    } else {
+        ctx.fillStyle = player.color;
+        ctx.fillRect(player.x, player.y, player.w, player.h);
+    }
     if(player.isAttacking) {
         ctx.fillStyle = "white";
         ctx.fillRect(player.x+player.w, player.y+10, 30, 40);

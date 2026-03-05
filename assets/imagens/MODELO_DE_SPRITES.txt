@@ -1,0 +1,36 @@
+MODELO DE ORGANIZAÇÃO DE SPRITES
+
+Regra simples:
+- Em cada pasta da entidade, coloque o arquivo com o nome: sprite.png
+- Exemplo: assets/imagens/personagens/elfa/sprite.png
+
+PERSONAGENS
+- assets/imagens/personagens/elfa/sprite.png
+- assets/imagens/personagens/fada/sprite.png
+- assets/imagens/personagens/paladino/sprite.png
+- assets/imagens/personagens/princesa/sprite.png
+
+INIMIGOS
+- assets/imagens/inimigos/stone/sprite.png
+- assets/imagens/inimigos/archer/sprite.png
+- assets/imagens/inimigos/hound/sprite.png
+- assets/imagens/inimigos/rat/sprite.png
+- assets/imagens/inimigos/bat/sprite.png
+- assets/imagens/inimigos/thief/sprite.png
+- assets/imagens/inimigos/fairy_c/sprite.png
+- assets/imagens/inimigos/spitter/sprite.png
+- assets/imagens/inimigos/worm/sprite.png
+- assets/imagens/inimigos/toad/sprite.png
+- assets/imagens/inimigos/mosquito/sprite.png
+- assets/imagens/inimigos/spirit/sprite.png
+- assets/imagens/inimigos/shard/sprite.png
+- assets/imagens/inimigos/golem/sprite.png
+- assets/imagens/inimigos/sentry/sprite.png
+- assets/imagens/inimigos/knight/sprite.png
+- assets/imagens/inimigos/tentacle/sprite.png
+- assets/imagens/inimigos/void/sprite.png
+
+CHEFE FINAL
+- assets/imagens/inimigos/chefe_final/sprite.png
+
+Se o arquivo não existir, o jogo usa fallback em cor sólida automaticamente.

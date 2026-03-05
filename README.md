@@ -28,6 +28,34 @@ Você pode ajustar com segurança, em um único lugar:
 - parâmetros do boss (vida, frequência e padrão de ataques)
 - economia da loja (custo da princesa e cura)
 
+## Como adicionar e relacionar imagens (sprites)
+
+O projeto já está preparado para usar imagens com fallback automático.
+
+### 1) Coloque os arquivos nas pastas corretas
+
+- personagens: `assets/imagens/personagens/<nome-do-personagem>/sprite.png`
+- inimigos: `assets/imagens/inimigos/<nome-do-inimigo>/sprite.png`
+- boss final: `assets/imagens/inimigos/boss/sprite.png`
+
+### 2) Relacione no mapa central
+
+No `game.js`, edite o objeto `SPRITE_PATHS`:
+
+- `SPRITE_PATHS.characters` para heróis
+- `SPRITE_PATHS.enemies` para inimigos
+- `SPRITE_PATHS.boss` para o boss
+
+Exemplo:
+
+- `elf: 'assets/imagens/personagens/elf/sprite.png'`
+- `stone: 'assets/imagens/inimigos/stone/sprite.png'`
+
+### 3) Pronto
+
+Se a imagem existir, ela é usada automaticamente.
+Se faltar arquivo ou caminho estiver errado, o jogo continua funcionando com o desenho em cor sólida.
+
 ## Controles
 
 - **Teclado**
