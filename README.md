@@ -17,6 +17,17 @@ Opcionalmente, para evitar restrições de alguns navegadores, rode com servidor
 - `styles.css` → estilos da UI e layout
 - `game.js` → lógica completa do jogo (loop, física, inimigos, progressão, loja e save)
 
+## Balanceamento centralizado
+
+Os valores principais de gameplay agora estão no objeto `CONFIG` em `game.js`.
+
+Você pode ajustar com segurança, em um único lugar:
+
+- gravidade, pulo, invulnerabilidade e duração de ataque
+- intervalo de spawn e velocidade base dos inimigos
+- parâmetros do boss (vida, frequência e padrão de ataques)
+- economia da loja (custo da princesa e cura)
+
 ## Controles
 
 - **Teclado**

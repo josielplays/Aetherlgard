@@ -1,8 +1,86 @@
 /** ENGINE & CONFIGURAÇÕES **/
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
+const CONFIG = {
+    canvasHeight: 400,
+    narrative: {
+        typingMs: 30
+    },
+    world: {
+        lastWorldIndex: 5,
+        spawnIntervalFrames: 100,
+        baseEnemySpeed: 4,
+        groundY: 340,
+        groundHeight: 60,
+        flyEnemyY: 150,
+        enemyDefaultWidth: 40,
+        enemyDefaultHeight: 50
+    },
+    player: {
+        spawnX: 80,
+        width: 40,
+        height: 60,
+        gravity: 0.7,
+        jumpVelocity: -14,
+        attackDurationMs: 250,
+        invulHitFrames: 60,
+        invulBossHitFrames: 20,
+        maxHp: 5
+    },
+    visual: {
+        hitShake: 10,
+        impactShake: 5,
+        impactParticlesDefault: 10,
+        particleSize: 4,
+        particleFade: 0.02,
+        bossBarResetWidth: '100%'
+    },
+    enemy: {
+        shootCooldownFrames: 120,
+        sineAmplitude: 3,
+        blinkFrequency: 0.2,
+        hitRewardGems: 25,
+        bulletSpeedX: -6,
+        arcBulletSpeedY: -5,
+        arcBulletGravity: 0.2
+    },
+    projectile: {
+        defaultSize: 10
+    },
+    boss: {
+        hp: 20,
+        xOffset: 150,
+        yOffset: 120,
+        width: 80,
+        height: 120,
+        colorSwapFrames: 60,
+        attackIntervalFrames: 180,
+        tripleShotCount: 3,
+        tripleShotSpacing: 40,
+        tripleShotSpeedX: -8,
+        teleportLeftX: 100,
+        teleportRightOffset: 200,
+        aoeOffsetX: 20,
+        aoeWidth: 60,
+        aoeHeight: 100,
+        aoeSpeedY: -10,
+        aoeImpactParticles: 20
+    },
+    economy: {
+        princessCost: 1000,
+        healCost: 50
+    }
+};
+
+const CHARACTERS = {
+    elf: { hp: 3, jumpMax: 1, color: '#d4af37' },
+    fairy: { hp: 2, jumpMax: 2, color: '#70dbff' },
+    paladin: { hp: 5, jumpMax: 1, color: '#c0c0c0' },
+    princess: { hp: 3, jumpMax: 1, color: '#ff69b4' }
+};
+
 canvas.width = window.innerWidth;
-canvas.height = 400;
+canvas.height = CONFIG.canvasHeight;
 
 const worlds = [
     { name: "Saída do Castelo", color: "#2d4c24", target: 200, enemies: ['stone','archer','hound'] },
@@ -76,7 +154,7 @@ function nextStory() {
                 isTyping = false;
                 storyIdx++;
             }
-        }, 30);
+        }, CONFIG.narrative.typingMs);
     } else {
         showMenu();
     }
@@ -97,13 +175,18 @@ function showMenu() {
 /** JOGO **/
 function initGame(char) {
     selectedChar = char;
-    const chars = {
-        elf: { hp: 3, jumpMax: 1, color: '#d4af37' },
-        fairy: { hp: 2, jumpMax: 2, color: '#70dbff' },
-        paladin: { hp: 5, jumpMax: 1, color: '#c0c0c0' },
-        princess: { hp: 3, jumpMax: 1, color: '#ff69b4' }
+    player = {
+        ...CHARACTERS[char],
+        x: CONFIG.player.spawnX,
+        y: 0,
+        w: CONFIG.player.width,
+        h: CONFIG.player.height,
+        dy: 0,
+        jCount: 0,
+        gems: 0,
+        invul: 0,
+        isAttacking: false
     };
-    player = { ...chars[char], x: 80, y: 0, w: 40, h: 60, dy: 0, jCount: 0, gems: 0, invul: 0, isAttacking: false };
     currentW = 0;
     startWorld();
 }
@@ -122,7 +205,7 @@ function startWorld() {
     document.getElementById('game-ui').classList.remove('hidden');
     document.getElementById('game-ctrl').classList.remove('hidden');
     document.getElementById('boss-hp-container').style.display = 'none';
-    document.getElementById('boss-hp-bar').style.width = '100%';
+    document.getElementById('boss-hp-bar').style.width = CONFIG.visual.bossBarResetWidth;
     canvas.classList.remove('hidden');
     canvas.style.background = worlds[currentW].color;
     document.getElementById('world-label').innerText = worlds[currentW].name;
@@ -166,23 +249,23 @@ function loop() {
     frame++;
     ctx.save();
     if(shake > 0) {
-        ctx.translate((Math.random()-0.5)*10, (Math.random()-0.5)*10);
+        ctx.translate((Math.random()-0.5)*CONFIG.visual.hitShake, (Math.random()-0.5)*CONFIG.visual.hitShake);
         shake--;
     }
     ctx.clearRect(0,0,canvas.width,canvas.height);
 
-    player.dy += 0.7;
+    player.dy += CONFIG.player.gravity;
     player.y += player.dy;
-    if(player.y > 340-player.h) {
-        player.y = 340-player.h;
+    if(player.y > CONFIG.world.groundY-player.h) {
+        player.y = CONFIG.world.groundY-player.h;
         player.dy = 0;
         player.jCount = 0;
     }
     if(player.invul > 0) player.invul--;
 
-    if(currentW === 5 && player.gems >= worlds[5].target && !boss) spawnBoss();
+    if(currentW === CONFIG.world.lastWorldIndex && player.gems >= worlds[CONFIG.world.lastWorldIndex].target && !boss) spawnBoss();
     if(!boss) {
-        if(frame % 100 === 0) spawnEnemy();
+        if(frame % CONFIG.world.spawnIntervalFrames === 0) spawnEnemy();
     } else {
         updateBoss();
     }
@@ -202,14 +285,21 @@ function loop() {
 function spawnEnemy() {
     const pool = worlds[currentW].enemies;
     const type = bestiary[pool[Math.floor(Math.random()*pool.length)]];
-    enemies.push({ ...type, x: canvas.width, y: type.type==='fly'?150:340-(type.h||50), w:40, h:type.h||50, t:0 });
+    enemies.push({
+        ...type,
+        x: canvas.width,
+        y: type.type === 'fly' ? CONFIG.world.flyEnemyY : CONFIG.world.groundY - (type.h || CONFIG.world.enemyDefaultHeight),
+        w: CONFIG.world.enemyDefaultWidth,
+        h: type.h || CONFIG.world.enemyDefaultHeight,
+        t: 0
+    });
 }
 
 function updateEntities() {
     enemies.forEach((en, i) => {
-        en.x -= (4 + currentW);
-        if(en.sine) en.y += Math.sin(frame*0.1)*3;
-        if(en.blink) ctx.globalAlpha = Math.sin(frame*0.2)>0?1:0.2;
+        en.x -= (CONFIG.world.baseEnemySpeed + currentW);
+        if(en.sine) en.y += Math.sin(frame*0.1)*CONFIG.enemy.sineAmplitude;
+        if(en.blink) ctx.globalAlpha = Math.sin(frame*CONFIG.enemy.blinkFrequency)>0?1:0.2;
 
         ctx.fillStyle = en.color;
         ctx.fillRect(en.x, en.y, en.w, en.h);
@@ -217,8 +307,14 @@ function updateEntities() {
 
         if(en.shoot && en.x < canvas.width && en.x > 0) {
             en.t++;
-            if(en.t > 120) {
-                bullets.push({ x:en.x, y:en.y+10, vx:-6, vy:en.shoot==='arc'?-5:0, g:en.shoot==='arc'?0.2:0 });
+            if(en.t > CONFIG.enemy.shootCooldownFrames) {
+                bullets.push({
+                    x: en.x,
+                    y: en.y + 10,
+                    vx: CONFIG.enemy.bulletSpeedX,
+                    vy: en.shoot === 'arc' ? CONFIG.enemy.arcBulletSpeedY : 0,
+                    g: en.shoot === 'arc' ? CONFIG.enemy.arcBulletGravity : 0
+                });
                 en.t = 0;
             }
         }
@@ -227,11 +323,11 @@ function updateEntities() {
             if(player.isAttacking) {
                 impact(en.x, en.y, en.color);
                 enemies.splice(i, 1);
-                player.gems += 25;
+                player.gems += CONFIG.enemy.hitRewardGems;
             } else if(player.invul <= 0) {
                 player.hp--;
-                player.invul = 60;
-                shake = 10;
+                player.invul = CONFIG.player.invulHitFrames;
+                shake = CONFIG.visual.hitShake;
             }
         }
     });
@@ -241,10 +337,10 @@ function updateEntities() {
         b.x += b.vx;
         b.y += b.vy;
         ctx.fillStyle = b.color || "yellow";
-        ctx.fillRect(b.x, b.y, b.w||10, b.h||10);
-        if(checkRect(player, {x:b.x, y:b.y, w:10, h:10}) && player.invul <= 0) {
+        ctx.fillRect(b.x, b.y, b.w || CONFIG.projectile.defaultSize, b.h || CONFIG.projectile.defaultSize);
+        if(checkRect(player, {x:b.x, y:b.y, w:CONFIG.projectile.defaultSize, h:CONFIG.projectile.defaultSize}) && player.invul <= 0) {
             player.hp--;
-            player.invul = 60;
+            player.invul = CONFIG.player.invulHitFrames;
             bullets.splice(i,1);
         }
     });
@@ -252,16 +348,16 @@ function updateEntities() {
     particles.forEach((p, i) => {
         p.x += p.vx;
         p.y += p.vy;
-        p.a -= 0.02;
+        p.a -= CONFIG.visual.particleFade;
         ctx.globalAlpha = p.a;
         ctx.fillStyle = p.c;
-        ctx.fillRect(p.x, p.y, 4, 4);
+        ctx.fillRect(p.x, p.y, CONFIG.visual.particleSize, CONFIG.visual.particleSize);
         if(p.a <= 0) particles.splice(i, 1);
     });
     ctx.globalAlpha = 1;
 
     ctx.fillStyle = "#3d2516";
-    ctx.fillRect(0, 340, canvas.width, 60);
+    ctx.fillRect(0, CONFIG.world.groundY, canvas.width, CONFIG.world.groundHeight);
     if(player.hp <= 0) {
         showEndScreen("VOCÊ FOI DERROTADO", "A sombra venceu esta batalha. Reorganize-se e tente novamente.");
     }
@@ -269,30 +365,48 @@ function updateEntities() {
 
 /** BOSS FINAL **/
 function spawnBoss() {
-    boss = { hp: 20, max: 20, x: canvas.width-150, y: 340-120, w: 80, h: 120, t: 0 };
+    boss = {
+        hp: CONFIG.boss.hp,
+        max: CONFIG.boss.hp,
+        x: canvas.width - CONFIG.boss.xOffset,
+        y: CONFIG.world.groundY - CONFIG.boss.yOffset,
+        w: CONFIG.boss.width,
+        h: CONFIG.boss.height,
+        t: 0
+    };
     document.getElementById('boss-hp-container').style.display = 'block';
 }
 
 function updateBoss() {
     boss.t++;
-    ctx.fillStyle = boss.t % 60 < 30 ? "#4b0082" : "#9400d3";
+    ctx.fillStyle = boss.t % CONFIG.boss.colorSwapFrames < CONFIG.boss.colorSwapFrames / 2 ? "#4b0082" : "#9400d3";
     ctx.fillRect(boss.x, boss.y, boss.w, boss.h);
 
-    if(boss.t % 180 === 0) {
+    if(boss.t % CONFIG.boss.attackIntervalFrames === 0) {
         const r = Math.random();
         if(r < 0.33) {
-            for(let i=0; i<3; i++) bullets.push({ x:boss.x, y:boss.y+i*40, vx:-8, vy:0, color:"#ff00ff" });
+            for(let i=0; i<CONFIG.boss.tripleShotCount; i++) {
+                bullets.push({ x: boss.x, y: boss.y + i * CONFIG.boss.tripleShotSpacing, vx: CONFIG.boss.tripleShotSpeedX, vy: 0, color: "#ff00ff" });
+            }
         } else if (r < 0.66) {
-            boss.x = boss.x > canvas.width/2 ? 100 : canvas.width-200;
+            boss.x = boss.x > canvas.width/2 ? CONFIG.boss.teleportLeftX : canvas.width - CONFIG.boss.teleportRightOffset;
         } else {
-            impact(player.x, 340, "purple", 20);
-            bullets.push({ x:player.x-20, y:340, vx:0, vy:-10, w:60, h:100, color:"#1a051a" });
+            impact(player.x, CONFIG.world.groundY, "purple", CONFIG.boss.aoeImpactParticles);
+            bullets.push({
+                x: player.x - CONFIG.boss.aoeOffsetX,
+                y: CONFIG.world.groundY,
+                vx: 0,
+                vy: CONFIG.boss.aoeSpeedY,
+                w: CONFIG.boss.aoeWidth,
+                h: CONFIG.boss.aoeHeight,
+                color: "#1a051a"
+            });
         }
     }
 
     if(player.isAttacking && checkRect(player, boss) && player.invul <= 0) {
         boss.hp--;
-        player.invul = 20;
+        player.invul = CONFIG.player.invulBossHitFrames;
         impact(boss.x+40, boss.y+60, "white");
         document.getElementById('boss-hp-bar').style.width = (boss.hp/boss.max)*100 + "%";
         if(boss.hp <= 0) {
@@ -315,8 +429,8 @@ function drawPlayer() {
     ctx.globalAlpha = 1;
 }
 
-function impact(x, y, c, n=10) {
-    shake = 5;
+function impact(x, y, c, n=CONFIG.visual.impactParticlesDefault) {
+    shake = CONFIG.visual.impactShake;
     for(let i=0; i<n; i++) particles.push({ x, y, vx:(Math.random()-0.5)*10, vy:(Math.random()-0.5)*10, c, a:1 });
 }
 
@@ -341,8 +455,8 @@ function nextWorld() {
 /** COMPRAS COM TRAVAS (LIMITES E DESBLOQUEIO) **/
 function buyItem(it) {
     if(it === 'princess') {
-        if (!saveData.princess && saveData.gems >= 1000) {
-            saveData.gems -= 1000;
+        if (!saveData.princess && saveData.gems >= CONFIG.economy.princessCost) {
+            saveData.gems -= CONFIG.economy.princessCost;
             saveData.princess = true;
             localStorage.setItem('aethel_gems', saveData.gems);
             localStorage.setItem('aethel_princess', 'true');
@@ -351,20 +465,20 @@ function buyItem(it) {
         } else if (saveData.princess) {
             alert("Você já possui a Princesa!");
         } else {
-            alert("Cristais insuficientes (1000 necessários)");
+            alert("Cristais insuficientes (" + CONFIG.economy.princessCost + " necessários)");
         }
     }
     else if(it === 'hp') {
-        if (saveData.gems >= 50 && player.hp < 5) {
-            saveData.gems -= 50;
+        if (saveData.gems >= CONFIG.economy.healCost && player.hp < CONFIG.player.maxHp) {
+            saveData.gems -= CONFIG.economy.healCost;
             player.hp++;
             localStorage.setItem('aethel_gems', saveData.gems);
             document.getElementById('current-gems').innerText = saveData.gems;
-            alert("Vida recuperada! (" + player.hp + "/5)");
-        } else if (player.hp >= 5) {
+            alert("Vida recuperada! (" + player.hp + "/" + CONFIG.player.maxHp + ")");
+        } else if (player.hp >= CONFIG.player.maxHp) {
             alert("Vida máxima atingida!");
         } else {
-            alert("Cristais insuficientes (50 necessários)");
+            alert("Cristais insuficientes (" + CONFIG.economy.healCost + " necessários)");
         }
     }
 }
@@ -372,7 +486,7 @@ function buyItem(it) {
 // Inputs
 const jump = () => {
     if(player.jCount < player.jumpMax) {
-        player.dy = -14;
+        player.dy = CONFIG.player.jumpVelocity;
         player.jCount++;
     }
 };
@@ -380,7 +494,7 @@ const jump = () => {
 const attack = () => {
     if(!player.isAttacking) {
         player.isAttacking = true;
-        setTimeout(() => player.isAttacking=false, 250);
+        setTimeout(() => player.isAttacking=false, CONFIG.player.attackDurationMs);
     }
 };
 
