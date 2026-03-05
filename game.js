@@ -36,6 +36,7 @@ const bestiary = {
 
 let player, enemies = [], bullets = [], particles = [], boss = null;
 let gameActive = false, currentW = 0, frame = 0, shake = 0;
+let selectedChar = null;
 let saveData = {
     gems: parseInt(localStorage.getItem('aethel_gems')) || 0,
     princess: localStorage.getItem('aethel_princess') === 'true'
@@ -95,6 +96,7 @@ function showMenu() {
 
 /** JOGO **/
 function initGame(char) {
+    selectedChar = char;
     const chars = {
         elf: { hp: 3, jumpMax: 1, color: '#d4af37' },
         fairy: { hp: 2, jumpMax: 2, color: '#70dbff' },
@@ -110,16 +112,53 @@ function startWorld() {
     gameActive = true;
     enemies = [];
     bullets = [];
+    particles = [];
     boss = null;
+    frame = 0;
+    shake = 0;
     document.getElementById('menu-screen').classList.add('hidden');
     document.getElementById('shop-screen').classList.add('hidden');
+    document.getElementById('end-screen').classList.add('hidden');
     document.getElementById('game-ui').classList.remove('hidden');
     document.getElementById('game-ctrl').classList.remove('hidden');
+    document.getElementById('boss-hp-container').style.display = 'none';
+    document.getElementById('boss-hp-bar').style.width = '100%';
     canvas.classList.remove('hidden');
     canvas.style.background = worlds[currentW].color;
     document.getElementById('world-label').innerText = worlds[currentW].name;
     document.getElementById('target-gems').innerText = worlds[currentW].target;
     requestAnimationFrame(loop);
+}
+
+function hideGameplayLayers() {
+    document.getElementById('game-ui').classList.add('hidden');
+    document.getElementById('game-ctrl').classList.add('hidden');
+    document.getElementById('shop-screen').classList.add('hidden');
+    document.getElementById('boss-hp-container').style.display = 'none';
+    canvas.classList.add('hidden');
+}
+
+function showEndScreen(title, text) {
+    gameActive = false;
+    hideGameplayLayers();
+    document.getElementById('end-title').innerText = title;
+    document.getElementById('end-text').innerText = text;
+    document.getElementById('end-screen').classList.remove('hidden');
+}
+
+function restartRun() {
+    if(selectedChar) {
+        initGame(selectedChar);
+    } else {
+        backToMenu();
+    }
+}
+
+function backToMenu() {
+    gameActive = false;
+    hideGameplayLayers();
+    document.getElementById('end-screen').classList.add('hidden');
+    showMenu();
 }
 
 function loop() {
@@ -223,7 +262,9 @@ function updateEntities() {
 
     ctx.fillStyle = "#3d2516";
     ctx.fillRect(0, 340, canvas.width, 60);
-    if(player.hp <= 0) location.reload();
+    if(player.hp <= 0) {
+        showEndScreen("VOCÊ FOI DERROTADO", "A sombra venceu esta batalha. Reorganize-se e tente novamente.");
+    }
 }
 
 /** BOSS FINAL **/
@@ -255,8 +296,9 @@ function updateBoss() {
         impact(boss.x+40, boss.y+60, "white");
         document.getElementById('boss-hp-bar').style.width = (boss.hp/boss.max)*100 + "%";
         if(boss.hp <= 0) {
-            alert("Aethelgard foi salva!");
-            location.reload();
+            saveData.gems += player.gems;
+            localStorage.setItem('aethel_gems', saveData.gems);
+            showEndScreen("AETHELGARD FOI SALVA!", "A luz voltou à floresta. Sua lenda será lembrada.");
         }
     }
 }

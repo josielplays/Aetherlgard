@@ -42,6 +42,15 @@
         </div>
     </div>
 
+    <div id="end-screen" class="screen hidden">
+        <div class="panel">
+            <h2 id="end-title" style="color: var(--gold)">FIM DE JOGO</h2>
+            <p id="end-text">Tente novamente para salvar Aethelgard.</p>
+            <button class="play-btn" onclick="restartRun()">JOGAR NOVAMENTE</button>
+            <button class="play-btn" style="padding: 10px 20px; margin-top: 12px;" onclick="backToMenu()">VOLTAR AO MENU</button>
+        </div>
+    </div>
+
     <div id="game-ui" class="hidden">
         <div id="hp-bar" style="font-size: 1.5rem; color: #ff4444;"></div>
         <div style="font-size: 1.2rem; color: var(--gold)">💎 <span id="run-gems">0</span> / <span id="target-gems">200</span></div>

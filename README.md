@@ -33,6 +33,7 @@ Opcionalmente, para evitar restrições de alguns navegadores, rode com servidor
 3. Run por mundo com coleta de cristais
 4. Loja entre fases
 5. Boss final no último mundo
+6. Tela de encerramento (vitória final ou derrota) sem recarregar a página
 
 ## Sistema de progresso
 
